@@ -9,7 +9,20 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const ConfigDir = "sample-config"
+var ConfigDir string
+
+func init() {
+	ConfigDir = os.Getenv("TAPE_CONFIG_DIR")
+	if ConfigDir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			// Fallback to a default if we can't get the home directory
+			ConfigDir = "/etc/tape"
+		} else {
+			ConfigDir = filepath.Join(home, ".tape")
+		}
+	}
+}
 
 type BoxConfig struct {
 	Workspace string `yaml:"workspace" validate:"required"`
