@@ -14,6 +14,8 @@ import (
 	"github.com/docker/docker/client"
 )
 
+const DevContainerCliImage = "devcontainer:latest"
+
 const HostFolderLabel = "devcontainer.local_folder" // used to label containers created from a workspace/folder
 const ConfigFileLabel = "devcontainer.config_file"
 
@@ -67,7 +69,7 @@ func (dc *DevcontainerCommand) Execute() error {
 	}
 
 	// Add the image and the command
-	dockerArgs = append(dockerArgs, "devcontainer", dc.Command)
+	dockerArgs = append(dockerArgs, DevContainerCliImage, dc.Command)
 
 	// Add the workspace folder argument
 	dockerArgs = append(dockerArgs, "--workspace-folder", dc.BoxConfig.Workspace)
