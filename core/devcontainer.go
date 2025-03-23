@@ -171,6 +171,24 @@ func StopContainer(containerID string) error {
 	return nil
 }
 
+func RemoveContainer(containerID string) error {
+	// Create a Docker client
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return fmt.Errorf("error creating Docker client: %v", err)
+	}
+	defer cli.Close()
+
+	// Remove the container
+	err = cli.ContainerRemove(ctx, containerID, container.RemoveOptions{RemoveVolumes: true, RemoveLinks: false, Force: true})
+	if err != nil {
+		return fmt.Errorf("error removing container %s: %v", containerID, err)
+	}
+
+	return nil
+}
+
 func ListContainers(labels []string) ([]container.Summary, error) {
 	// Create a Docker client
 	ctx := context.Background()

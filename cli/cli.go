@@ -11,5 +11,5 @@ func init() {
 	rootCmd.AddCommand(lsCmd)
 	rootCmd.AddCommand(execCmd)
 	rootCmd.AddCommand(stopCmd)
-	//rootCmd.AddCommand(rmCmd)
+	rootCmd.AddCommand(rmCmd)
 }
