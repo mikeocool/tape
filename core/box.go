@@ -102,8 +102,9 @@ const (
 )
 
 type BoxSummary struct {
-	EnvName string
-	State   BoxState
+	EnvName     string
+	State       BoxState
+	ContainerID string
 }
 
 func GetBoxSummary(envName string) (*BoxSummary, error) {
@@ -126,13 +127,14 @@ func GetBoxSummary(envName string) (*BoxSummary, error) {
 
 	if container.State == "running" {
 		state = BoxStateRunning
-	} else if container.State == "stopped" {
+	} else if container.State == "exited" {
 		state = BoxStateStopped
 	}
 
 	return &BoxSummary{
-		EnvName: envName,
-		State:   state,
+		EnvName:     envName,
+		State:       state,
+		ContainerID: container.ID,
 	}, nil
 
 }

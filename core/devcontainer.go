@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -147,6 +148,27 @@ func InspectContainer(containerID string) (container.InspectResponse, error) {
 	}
 
 	return containerInfo, nil
+}
+
+func StopContainer(containerID string) error {
+	// Create a Docker client
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return fmt.Errorf("error creating Docker client: %v", err)
+	}
+	defer cli.Close()
+
+	// Set timeout for stopping the container (in seconds)
+	timeout := int(30 * time.Second)
+
+	// Stop the container
+	err = cli.ContainerStop(ctx, containerID, container.StopOptions{Timeout: &timeout})
+	if err != nil {
+		return fmt.Errorf("error stopping container %s: %v", containerID, err)
+	}
+
+	return nil
 }
 
 func ListContainers(labels []string) ([]container.Summary, error) {
