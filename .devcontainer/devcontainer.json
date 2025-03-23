@@ -1,5 +1,5 @@
 {
-    "name": "boxcut",
+    "name": "tape",
     "image": "mcr.microsoft.com/devcontainers/go:1-1.23-bullseye",
     "features": {
         "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {

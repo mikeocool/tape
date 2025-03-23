@@ -1,8 +1,8 @@
 ```
-go build -o bin/boxcut .
+go build -o bin/tape .
 ```
 
 ```
-./bin/boxcut up hellobox
-./bin/boxcut exec hellobox ls -- -al
+./bin/tape up hellobox
+./bin/tape exec hellobox ls -- -al
 ```

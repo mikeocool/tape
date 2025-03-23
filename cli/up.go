@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/mikeocool/boxd/boxcut/core"
+	"github.com/mikeocool/tape/core"
 	"github.com/spf13/cobra"
 )
 

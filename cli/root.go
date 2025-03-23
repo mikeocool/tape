@@ -7,9 +7,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "boxcut",
+	Use:   "tape",
 	Short: "Manage dev environments",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("boxcut")
+		fmt.Println("tape")
 	},
 }

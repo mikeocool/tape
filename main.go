@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/mikeocool/boxd/boxcut/cli"
+	"github.com/mikeocool/tape/cli"
 )
 
 func main() {

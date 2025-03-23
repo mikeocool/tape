@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/mikeocool/boxd/boxcut/core"
+	"github.com/mikeocool/tape/core"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +13,7 @@ var execCmd = &cobra.Command{
 	Use:   "exec [envName] [cmd] [args...]",
 	Short: "Execute a command in a dev environment",
 	Long: `Execute a command inside a dev environment.
-Example: boxcut exec myenv ls -la
+Example: tape exec myenv ls -la
 Everything after -- will be passed directly to the container.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
