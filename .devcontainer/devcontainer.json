@@ -1,0 +1,13 @@
+{
+    "name": "boxcut",
+    "image": "mcr.microsoft.com/devcontainers/go:1-1.23-bullseye",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "moby": true,
+            "installDockerBuildx": true
+        }
+    },
+    "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+    ]
+}
