@@ -1,4 +1,14 @@
+A cli tool for managing devcontainers defined by some simple yaml config.
+
+Setup config:
 ```
+mkdir .tape
+cp sample-config/hellobox.yml .tape/
+```
+
+Build: 
+```
+mkdir bin
 go build -o bin/tape .
 ```
 
