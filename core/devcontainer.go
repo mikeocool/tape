@@ -8,10 +8,39 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 )
+
+const HostFolderLabel = "devcontainer.local_folder" // used to label containers created from a workspace/folder
+const ConfigFileLabel = "devcontainer.config_file"
+
+// ContainerNotFoundError is returned when no containers match the specified criteria.
+// This error can be identified at call sites using type assertion:
+//
+//	container, err := FindContainer(labels)
+//	if err != nil {
+//		if _, ok := err.(*ContainerNotFoundError); ok {
+//			// Handle case where no container was found
+//		} else {
+//			// Handle other errors
+//		}
+//	}
+type ContainerNotFoundError struct {
+	Labels []string
+}
+
+// Error implements the error interface for ContainerNotFoundError
+func (e *ContainerNotFoundError) Error() string {
+	return "no matching containers found"
+}
+
+// IsContainerNotFound checks if an error is a ContainerNotFoundError
+func IsContainerNotFound(err error) bool {
+	_, ok := err.(*ContainerNotFoundError)
+	return ok
+}
 
 // DevcontainerCommand represents a command to be executed against the devcontainer CLI
 type DevcontainerCommand struct {
@@ -62,16 +91,48 @@ func (dc *DevcontainerCommand) Execute() error {
 	return dockerCmd.Run()
 }
 
-func FindDevContainer(labels []string) (string, error) {
-	containers, err := ListContainers(labels)
-	if err != nil {
-		return "", err
+func FindDevContainer(config BoxConfig) (container.Summary, error) {
+	hostFolderLabel := fmt.Sprintf("%s=%s", HostFolderLabel, config.Workspace)
+	labels := []string{
+		hostFolderLabel,
+		fmt.Sprintf("%s=%s", ConfigFileLabel, config.Config),
 	}
 
-	return containers, nil
+	summary, err := FindContainer(labels)
+	if err != nil && IsContainerNotFound(err) {
+		// seems like sometimes the config file label is wrong?
+		// so matching the devcontainer-cli impl of just using the host folder label
+		summary, err = FindContainer([]string{hostFolderLabel})
+	}
+
+	if err != nil {
+		return container.Summary{}, err
+	}
+
+	return summary, nil
 }
 
-func InspectContainer(containerID string) (types.ContainerJSON, error) {
+func FindContainer(labels []string) (container.Summary, error) {
+	containers, err := ListContainers(labels)
+	if err != nil {
+		return container.Summary{}, err
+	}
+
+	// Filter out containers with status "Removing"
+	var filteredContainers []container.Summary
+	for _, c := range containers {
+		// Skip containers that are in the process of being removed
+		if c.Status != "Removing" {
+			filteredContainers = append(filteredContainers, c)
+		}
+	}
+	if len(filteredContainers) > 0 {
+		return filteredContainers[0], nil
+	}
+	return container.Summary{}, &ContainerNotFoundError{Labels: labels}
+}
+
+func InspectContainer(containerID string) (container.InspectResponse, error) {
 	// Execute docker inspect command for the given container IDs
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -82,13 +143,13 @@ func InspectContainer(containerID string) (types.ContainerJSON, error) {
 
 	containerInfo, err := cli.ContainerInspect(ctx, containerID)
 	if err != nil {
-		return nil, err
+		return container.InspectResponse{}, err
 	}
 
 	return containerInfo, nil
 }
 
-func ListContainers(labels []string) ([]types.ContainerSummary, error) {
+func ListContainers(labels []string) ([]container.Summary, error) {
 	// Create a Docker client
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -104,7 +165,7 @@ func ListContainers(labels []string) ([]types.ContainerSummary, error) {
 	}
 
 	// List containers with the specified filters
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{
+	containers, err := cli.ContainerList(ctx, container.ListOptions{
 		All:     true,
 		Filters: labelFilters,
 	})

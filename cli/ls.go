@@ -2,9 +2,9 @@ package cli
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
+	"os"
 
+	"github.com/mikeocool/tape/core"
 	"github.com/spf13/cobra"
 )
 
@@ -12,19 +12,32 @@ var lsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "List environments",
 	Run: func(cmd *cobra.Command, args []string) {
-		files, err := filepath.Glob("sample-config/*.yml")
+		envs, err := core.ListBoxConfigs()
 		if err != nil {
-			fmt.Printf("Error reading config files: %v\n", err)
-			return
+			fmt.Printf("Error listing environments: %v\n", err)
+			os.Exit(1)
 		}
 
-		for _, file := range files {
-			// Get just the filename without path and extension
-			base := filepath.Base(file)
-			name := strings.TrimSuffix(base, ".yml")
-			fmt.Println(name)
+		// Find the longest environment name for proper alignment
+		maxNameLength := 0
+		for _, name := range envs {
+			if len(name) > maxNameLength {
+				maxNameLength = len(name)
+			}
+		}
 
-			// TODO report if container is running or not
+		// Format string with fixed width for the first column
+		formatStr := fmt.Sprintf("%%-%ds\t%%s\n", maxNameLength)
+		errorFormatStr := fmt.Sprintf("%%-%ds\terror\t%%s\n", maxNameLength)
+
+		for _, name := range envs {
+			summary, err := core.GetBoxSummary(name)
+			if err != nil {
+				fmt.Printf(errorFormatStr, name, err)
+				continue
+			}
+
+			fmt.Printf(formatStr, name, summary.State)
 		}
 	},
 }
