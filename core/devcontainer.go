@@ -76,7 +76,7 @@ func (dc *DevcontainerCommand) Execute() error {
 
 	// Add config path argument if needed
 	if dc.BoxConfig.Config != "" {
-		dockerArgs = append(dockerArgs, "--override-config", dc.BoxConfig.Config)
+		dockerArgs = append(dockerArgs, "--config", dc.BoxConfig.Config)
 	}
 
 	// Add any additional arguments

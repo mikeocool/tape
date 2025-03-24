@@ -3,7 +3,7 @@ A cli tool for managing devcontainers defined by some simple yaml config.
 Setup config:
 ```
 mkdir .tape
-cp sample-config/hellobox.yml .tape/
+cp fixtures/.tape/hellobox.yml .tape/
 ```
 
 Build: 

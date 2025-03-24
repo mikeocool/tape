@@ -56,7 +56,7 @@ func LoadBoxConfig(envName string) (*BoxConfig, error) {
 	// fill in defaults
 	// Make workspace path absolute
 	if !filepath.IsAbs(config.Workspace) {
-		absPath, err := filepath.Abs(config.Workspace)
+		absPath, err := filepath.Abs(filepath.Join(ConfigDir, config.Workspace))
 		if err != nil {
 			return nil, fmt.Errorf("error converting workspace to absolute path: %v", err)
 		}
@@ -68,6 +68,14 @@ func LoadBoxConfig(envName string) (*BoxConfig, error) {
 
 	if config.Config == "" {
 		config.Config = fmt.Sprintf("%s/.devcontainer/devcontainer.json", config.Workspace)
+	} else {
+		if !filepath.IsAbs(config.Config) {
+			absConfigPath, err := filepath.Abs(filepath.Join(ConfigDir, config.Config))
+			if err != nil {
+				return nil, fmt.Errorf("error converting config to absolute path: %v", err)
+			}
+			config.Config = absConfigPath
+		}
 	}
 
 	return &config, nil
