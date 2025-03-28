@@ -12,7 +12,7 @@
             "program": "${workspaceFolder}",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
-            "args": ["ls"]
+            "args": ["up", "hellobox"]
         }
     ]
 }

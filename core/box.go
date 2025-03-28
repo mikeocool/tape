@@ -25,6 +25,7 @@ func init() {
 }
 
 type BoxConfig struct {
+	Name      string
 	Workspace string `yaml:"workspace" validate:"required"`
 	Config    string `yaml:"config,omitempty"`
 }
@@ -47,6 +48,7 @@ func LoadBoxConfig(envName string) (*BoxConfig, error) {
 	if err := yaml.Unmarshal(yamlData, &config); err != nil {
 		return nil, fmt.Errorf("error parsing YAML: %v", err)
 	}
+	config.Name = envName
 
 	// Validate the configuration using validator
 	if err := config.ValidateConfig(); err != nil {

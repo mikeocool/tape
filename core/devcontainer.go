@@ -1,11 +1,13 @@
 package core
 
 import (
+	"archive/tar"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -54,44 +56,172 @@ type DevcontainerCommand struct {
 
 // Execute builds and runs the devcontainer command
 func (dc *DevcontainerCommand) Execute() error {
-	// Prepare the docker command and base arguments
-	dockerArgs := []string{
-		"run", "--rm", "-it",
-		"-v", "/var/run/docker.sock:/var/run/docker.sock",
-		"-v", fmt.Sprintf("%s:%s", dc.BoxConfig.Workspace, dc.BoxConfig.Workspace),
-	}
-
-	// Optional config path - add volume mount before the image name
-	if dc.BoxConfig.Config != "" {
-		configDir := filepath.Dir(dc.BoxConfig.Config)
-		dockerArgs = append(dockerArgs,
-			"-v", fmt.Sprintf("%s:%s", configDir, configDir))
-	}
-
-	// Add the image and the command
-	dockerArgs = append(dockerArgs, DevContainerCliImage, dc.Command)
-
-	// Add the workspace folder argument
-	dockerArgs = append(dockerArgs, "--workspace-folder", dc.BoxConfig.Workspace)
+	devConArgs := []string{"devcontainer", dc.Command, "--workspace-folder", dc.BoxConfig.Workspace}
 
 	// Add config path argument if needed
 	if dc.BoxConfig.Config != "" {
-		dockerArgs = append(dockerArgs, "--config", dc.BoxConfig.Config)
+		//devConArgs = append(devConArgs, "--config", dc.BoxConfig.Config)
+		devConArgs = append(devConArgs, "--config", "/tmp/devcontainer.json")
 	}
 
 	// Add any additional arguments
-	dockerArgs = append(dockerArgs, dc.AdditionalArgs...)
+	devConArgs = append(devConArgs, dc.AdditionalArgs...)
 
-	// Create and configure the command
-	dockerCmd := exec.Command("docker", dockerArgs...)
+	// Prepare the docker command and base arguments
+	// Create a Docker client
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return fmt.Errorf("error creating Docker client: %v", err)
+	}
+	defer cli.Close()
 
-	// Set up command output streams
-	dockerCmd.Stdout = os.Stdout
-	dockerCmd.Stderr = os.Stderr
-	dockerCmd.Stdin = os.Stdin
+	// Configure container binds for volumes
+	binds := []string{
+		"/var/run/docker.sock:/var/run/docker.sock",
+		fmt.Sprintf("%s:%s", dc.BoxConfig.Workspace, dc.BoxConfig.Workspace),
+	}
 
-	// Run the command
-	return dockerCmd.Run()
+	// Optional config path binding
+	if dc.BoxConfig.Config != "" {
+		//configDir := filepath.Dir(dc.BoxConfig.Config)
+		//binds = append(binds, fmt.Sprintf("%s:%s", configDir, configDir))
+	}
+
+	// Create container config
+	containerConfig := &container.Config{
+		Image:        DevContainerCliImage,
+		Cmd:          devConArgs,
+		Tty:          true,
+		AttachStdout: true,
+		AttachStderr: true,
+		OpenStdin:    true,
+	}
+
+	// Create host config with binds
+	hostConfig := &container.HostConfig{
+		Binds:      binds,
+		AutoRemove: true,
+	}
+
+	// Create the container
+	resp, err := cli.ContainerCreate(
+		ctx,
+		containerConfig,
+		hostConfig,
+		nil,
+		nil,
+		"",
+	)
+	if err != nil {
+		return fmt.Errorf("error creating container: %v", err)
+	}
+
+	if dc.BoxConfig.Config != "" {
+		// Prepare the config file path
+		configSource := dc.BoxConfig.Config
+		containerID := resp.ID
+		containerDest := "/tmp/devcontainer.json"
+
+		var copyContent bytes.Buffer
+		tarWriter := tar.NewWriter(&copyContent)
+		defer tarWriter.Close()
+
+		header := &tar.Header{
+			Name: filepath.Base(containerDest),
+			Mode: 0644,
+			Size: 0, // Will be set after reading the file
+		}
+
+		// Read the file to get its size and content
+		fileInfo, err := os.Stat(configSource)
+		if err != nil {
+			return fmt.Errorf("error getting file info: %v", err)
+		}
+		header.Size = fileInfo.Size()
+
+		// Write the header to the tar
+		if err := tarWriter.WriteHeader(header); err != nil {
+			return fmt.Errorf("error writing tar header: %v", err)
+		}
+
+		// Read the config file content
+		configFile, err := os.Open(configSource)
+		if err != nil {
+			return fmt.Errorf("error reading config file: %v", err)
+		}
+		defer configFile.Close()
+
+		_, err = io.Copy(tarWriter, configFile)
+		if err != nil {
+			return fmt.Errorf("error copying config file to tar: %v", err)
+		}
+		tarWriter.Close()
+
+		contentReader := bytes.NewReader(copyContent.Bytes())
+
+		// Create a tar archive for copying into the container
+		err = cli.CopyToContainer(ctx, containerID, filepath.Dir(containerDest), contentReader, container.CopyToContainerOptions{
+			AllowOverwriteDirWithFile: true,
+		})
+		if err != nil {
+			return fmt.Errorf("error copying config file to container: %v", err)
+		}
+	}
+
+	out, err := cli.ContainerAttach(ctx, resp.ID, container.AttachOptions{
+		Stream: true,
+		Stdout: true,
+		Stderr: true,
+		Stdin:  true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to attach to container: %w", err)
+	}
+	defer out.Close()
+
+	// TODO might want to use wait group here, so that we wait for these to finish
+	// before returning from the function
+	go func() {
+		// Copy container output directly to terminal
+		// TODO test that we also get stderr -- tty mode seems to break stdcopy
+		//_, err := stdcopy.StdCopy(os.Stdout, os.Stderr, out.Reader)
+		_, err := io.Copy(os.Stdout, out.Reader)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error streaming output: %s\n", err)
+		}
+	}()
+
+	// Set up goroutine to handle terminal input (if needed)
+	go func() {
+		if _, err := io.Copy(out.Conn, os.Stdin); err != nil {
+			fmt.Fprintf(os.Stderr, "Error copying stdin: %s\n", err)
+		}
+		out.CloseWrite()
+	}()
+
+	// Start the container
+	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+		return fmt.Errorf("error starting container: %v", err)
+	}
+
+	defer func() {
+		if err := cli.ContainerStop(ctx, resp.ID, container.StopOptions{}); err != nil {
+			log.Printf("Warning: failed to stop container: %v", err)
+		}
+	}()
+
+	waitC, errC := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+	select {
+	case err := <-errC:
+		if err != nil {
+			return fmt.Errorf("error waiting for container: %v", err)
+		}
+	case <-waitC:
+		// Container is ready
+	}
+
+	return nil
 }
 
 func FindDevContainer(config BoxConfig) (container.Summary, error) {

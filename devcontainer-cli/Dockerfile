@@ -8,4 +8,5 @@ RUN rc-update add docker boot
 RUN mkdir /workspace
 WORKDIR /workspace
 
-ENTRYPOINT ["devcontainer"]
+
+# ENTRYPOINT ["devcontainer-wrapper"]
