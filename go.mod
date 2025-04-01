@@ -6,6 +6,7 @@ require (
 	github.com/docker/docker v28.0.2+incompatible
 	github.com/go-playground/validator/v10 v10.25.0
 	github.com/spf13/cobra v1.9.1
+	golang.org/x/term v0.29.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 

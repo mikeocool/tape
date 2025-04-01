@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	"golang.org/x/term"
 )
 
 const DevContainerCliImage = "devcontainer:latest"
@@ -104,6 +105,13 @@ func (dc *DevcontainerCommand) Execute() error {
 		AutoRemove: true,
 	}
 
+	// Set up terminal raw mode to properly handle control sequences
+	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		return fmt.Errorf("unable to set terminal to raw mode: %v", err)
+	}
+	defer term.Restore(int(os.Stdin.Fd()), oldState)
+
 	// Create the container
 	resp, err := cli.ContainerCreate(
 		ctx,
@@ -180,8 +188,6 @@ func (dc *DevcontainerCommand) Execute() error {
 	}
 	defer out.Close()
 
-	// TODO might want to use wait group here, so that we wait for these to finish
-	// before returning from the function
 	go func() {
 		// Copy container output directly to terminal
 		// TODO test that we also get stderr -- tty mode seems to break stdcopy
@@ -205,6 +211,7 @@ func (dc *DevcontainerCommand) Execute() error {
 		return fmt.Errorf("error starting container: %v", err)
 	}
 
+	// TODO this is probably not strcitly necessary, or can at least fail silently
 	defer func() {
 		if err := cli.ContainerStop(ctx, resp.ID, container.StopOptions{}); err != nil {
 			log.Printf("Warning: failed to stop container: %v", err)
@@ -220,6 +227,9 @@ func (dc *DevcontainerCommand) Execute() error {
 	case <-waitC:
 		// Container is ready
 	}
+
+	// Give a small amount of time for final I/O operations to complete
+	time.Sleep(100 * time.Millisecond)
 
 	return nil
 }
