@@ -4,16 +4,19 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	"github.com/mikeocool/tape/devcontinaer"
 	"golang.org/x/term"
 )
 
@@ -126,8 +129,19 @@ func (dc *DevcontainerCommand) Execute() error {
 	}
 
 	if dc.BoxConfig.Config != "" {
-		// Prepare the config file path
-		configSource := dc.BoxConfig.Config
+		// Load the config file, modify it, and serialize it to JSON
+		config, err := LoadConfig(dc.BoxConfig.Config)
+		if err != nil {
+			return fmt.Errorf("error loading config: %v", err)
+		}
+		overrideConfigValues(dc.BoxConfig, config)
+
+		// Serialize the config to JSON
+		configJSON, err := json.MarshalIndent(config, "", "  ")
+		if err != nil {
+			return fmt.Errorf("error serializing config to JSON: %v", err)
+		}
+
 		containerID := resp.ID
 		containerDest := "/tmp/devcontainer.json"
 
@@ -138,31 +152,17 @@ func (dc *DevcontainerCommand) Execute() error {
 		header := &tar.Header{
 			Name: filepath.Base(containerDest),
 			Mode: 0644,
-			Size: 0, // Will be set after reading the file
+			Size: int64(len(configJSON)),
 		}
-
-		// Read the file to get its size and content
-		fileInfo, err := os.Stat(configSource)
-		if err != nil {
-			return fmt.Errorf("error getting file info: %v", err)
-		}
-		header.Size = fileInfo.Size()
 
 		// Write the header to the tar
 		if err := tarWriter.WriteHeader(header); err != nil {
 			return fmt.Errorf("error writing tar header: %v", err)
 		}
 
-		// Read the config file content
-		configFile, err := os.Open(configSource)
-		if err != nil {
-			return fmt.Errorf("error reading config file: %v", err)
-		}
-		defer configFile.Close()
-
-		_, err = io.Copy(tarWriter, configFile)
-		if err != nil {
-			return fmt.Errorf("error copying config file to tar: %v", err)
+		// Write the JSON content to the tar
+		if _, err := tarWriter.Write(configJSON); err != nil {
+			return fmt.Errorf("error writing config JSON to tar: %v", err)
 		}
 		tarWriter.Close()
 
@@ -232,6 +232,23 @@ func (dc *DevcontainerCommand) Execute() error {
 	time.Sleep(100 * time.Millisecond)
 
 	return nil
+}
+
+func LoadConfig(path string) (*devcontinaer.DevContainerConfig, error) {
+	// Read the original devcontainer.json file
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("error reading devcontainer config: %v", err)
+	}
+
+	// Parse the devcontainer.json into our config structure
+	return devcontinaer.ParseDevContainer(data)
+}
+
+func overrideConfigValues(boxConfig BoxConfig, config *devcontinaer.DevContainerConfig) {
+	if !slices.Contains(config.RunArgs, "--name") {
+		config.RunArgs = append(config.RunArgs, "--name", boxConfig.Name)
+	}
 }
 
 func FindDevContainer(config BoxConfig) (container.Summary, error) {
