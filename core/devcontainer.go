@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"slices"
 	"time"
 
@@ -75,8 +76,8 @@ func (dc *DevcontainerCommand) Execute() error {
 
 	// Optional config path binding
 	if dc.BoxConfig.Config != "" {
-		//configDir := filepath.Dir(dc.BoxConfig.Config)
-		//binds = append(binds, fmt.Sprintf("%s:%s", configDir, configDir))
+		configDir := filepath.Dir(dc.BoxConfig.Config)
+		binds = append(binds, fmt.Sprintf("%s:%s", configDir, configDir))
 	}
 
 	cli, err := container.NewClient()
