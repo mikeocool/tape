@@ -49,9 +49,9 @@ type DevContainerConfig struct {
 	Image string `json:"image,omitempty"`
 
 	// Docker Compose specific properties
-	DockerComposeFile ComposeFileValue `json:"dockerComposeFile,omitempty"`
-	Service           string           `json:"service,omitempty"`
-	RunServices       []string         `json:"runServices,omitempty"`
+	DockerComposeFile *ComposeFileValue `json:"dockerComposeFile,omitempty"`
+	Service           string            `json:"service,omitempty"`
+	RunServices       []string          `json:"runServices,omitempty"`
 }
 
 // AppPortValue represents an app port that can be an integer, string, or array of those
