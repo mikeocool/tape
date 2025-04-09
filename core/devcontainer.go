@@ -112,6 +112,9 @@ func (dc *DevcontainerCommand) Execute() error {
 			return fmt.Errorf("error serializing config to JSON: %v", err)
 		}
 
+		// TOOD only show this when debugging
+		fmt.Printf("Using devcontainer config:\n%s\n", string(configJSON))
+
 		err = devContainer.CreateFile(ctx, "/tmp/devcontainer.json", configJSON)
 		if err != nil {
 			return fmt.Errorf("error creating config file: %v", err)
