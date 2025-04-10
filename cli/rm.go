@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 
+	"github.com/mikeocool/tape/container"
 	"github.com/mikeocool/tape/core"
 	"github.com/spf13/cobra"
 )
@@ -32,7 +34,8 @@ var rmCmd = &cobra.Command{
 		fmt.Printf("Removing container %s...\n", envName)
 
 		// Remove the container
-		err = core.RemoveContainer(summary.ContainerID)
+
+		err = container.RemoveContainer(context.Background(), summary.ContainerID)
 		if err != nil {
 			fmt.Printf("Error removing container: %v\n", err)
 			os.Exit(1)

@@ -24,7 +24,7 @@ type ContainerConfig struct {
 
 type Container struct {
 	ID     string
-	Config ContainerConfig
+	State  string
 	client *client.Client
 }
 
@@ -70,7 +70,7 @@ func (c *Container) AttachAndRun(ctx context.Context, command []string) error {
 	}
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
 
-	out, err := c.client.ContainerAttach(ctx, resp.ID, container.AttachOptions{
+	out, err := c.client.ContainerAttach(ctx, c.ID, container.AttachOptions{
 		Stream: true,
 		Stdout: true,
 		Stderr: true,
@@ -111,7 +111,7 @@ func (c *Container) AttachAndRun(ctx context.Context, command []string) error {
 	// 	}
 	// }()
 
-	waitC, errC := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+	waitC, errC := c.client.ContainerWait(ctx, c.ID, container.WaitConditionNotRunning)
 	select {
 	case err := <-errC:
 		if err != nil {

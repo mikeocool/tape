@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/mikeocool/tape/container"
 	"gopkg.in/yaml.v2"
 )
 
@@ -137,9 +138,9 @@ func GetBoxSummary(envName string) (*BoxSummary, error) {
 	}
 
 	state := BoxStateUnknown
-	container, err := FindDevContainer(*boxConfig)
+	dc, err := FindDevContainer(*boxConfig)
 	if err != nil {
-		if IsContainerNotFound(err) {
+		if container.IsContainerNotFound(err) {
 			return &BoxSummary{
 				EnvName: envName,
 				State:   BoxStateDoesNotExist,
@@ -148,16 +149,16 @@ func GetBoxSummary(envName string) (*BoxSummary, error) {
 		return nil, err
 	}
 
-	if container.State == "running" {
+	if dc.State == "running" {
 		state = BoxStateRunning
-	} else if container.State == "exited" {
+	} else if dc.State == "exited" {
 		state = BoxStateStopped
 	}
 
 	return &BoxSummary{
 		EnvName:     envName,
 		State:       state,
-		ContainerID: container.ID,
+		ContainerID: dc.ID,
 	}, nil
 
 }

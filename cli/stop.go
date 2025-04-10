@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 
+	"github.com/mikeocool/tape/container"
 	"github.com/mikeocool/tape/core"
 	"github.com/spf13/cobra"
 )
@@ -31,7 +33,7 @@ var stopCmd = &cobra.Command{
 		fmt.Printf("Stopping container %s...\n", envName)
 
 		// Stop the container
-		err = core.StopContainer(summary.ContainerID)
+		err = container.StopContainer(context.Background(), summary.ContainerID)
 		if err != nil {
 			fmt.Printf("Error stopping container: %v\n", err)
 			os.Exit(1)
