@@ -70,7 +70,7 @@ func (c *Client) CreateContainer(ctx context.Context, config ContainerConfig) (*
 		return nil, fmt.Errorf("error creating container: %v", err)
 	}
 
-	return &Container{ID: resp.ID, State: "created"}, nil
+	return &Container{ID: resp.ID, State: "created", client: c.client}, nil
 }
 
 func (c *Client) FindContainer(ctx context.Context, labels []string) (*Container, error) {
