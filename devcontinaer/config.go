@@ -18,19 +18,19 @@ type DevContainerConfig struct {
 	UpdateRemoteUserUID         *bool                     `json:"updateRemoteUserUID,omitempty"`
 	RemoteEnv                   map[string]*string        `json:"remoteEnv,omitempty"`
 	RemoteUser                  string                    `json:"remoteUser,omitempty"`
-	InitializeCommand           CommandValue              `json:"initializeCommand,omitempty"`
-	OnCreateCommand             CommandValue              `json:"onCreateCommand,omitempty"`
-	UpdateContentCommand        CommandValue              `json:"updateContentCommand,omitempty"`
-	PostCreateCommand           CommandValue              `json:"postCreateCommand,omitempty"`
-	PostStartCommand            CommandValue              `json:"postStartCommand,omitempty"`
-	PostAttachCommand           CommandValue              `json:"postAttachCommand,omitempty"`
+	InitializeCommand           *CommandValue             `json:"initializeCommand,omitempty"`
+	OnCreateCommand             *CommandValue             `json:"onCreateCommand,omitempty"`
+	UpdateContentCommand        *CommandValue             `json:"updateContentCommand,omitempty"`
+	PostCreateCommand           *CommandValue             `json:"postCreateCommand,omitempty"`
+	PostStartCommand            *CommandValue             `json:"postStartCommand,omitempty"`
+	PostAttachCommand           *CommandValue             `json:"postAttachCommand,omitempty"`
 	WaitFor                     string                    `json:"waitFor,omitempty"`
 	UserEnvProbe                string                    `json:"userEnvProbe,omitempty"`
 	HostRequirements            *HostRequirements         `json:"hostRequirements,omitempty"`
 	Customizations              map[string]interface{}    `json:"customizations,omitempty"`
 
 	// Non-compose specific properties
-	AppPort         AppPortValue      `json:"appPort,omitempty"`
+	AppPort         *AppPortValue     `json:"appPort,omitempty"`
 	ContainerEnv    map[string]string `json:"containerEnv,omitempty"`
 	ContainerUser   string            `json:"containerUser,omitempty"`
 	Mounts          []string          `json:"mounts,omitempty"`
