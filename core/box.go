@@ -27,8 +27,9 @@ func init() {
 
 type BoxConfig struct {
 	Name      string
-	Workspace string `yaml:"workspace" validate:"required"`
-	Config    string `yaml:"config,omitempty"`
+	Workspace string   `yaml:"workspace" validate:"required"`
+	Config    string   `yaml:"config,omitempty"`
+	Mounts    []string `yaml:"mounts,omitempty"`
 }
 
 // ValidateConfig validates the BoxConfig using validator
