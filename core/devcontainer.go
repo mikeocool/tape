@@ -24,8 +24,7 @@ type DevcontainerCommand struct {
 	AdditionalArgs []string
 }
 
-// Execute builds and runs the devcontainer command
-func (dc *DevcontainerCommand) Execute() ([]string, error) {
+func buildDevcontainerArgs(dc *DevcontainerCommand) []string {
 	devConArgs := []string{"devcontainer", dc.Command, "--workspace-folder", dc.BoxConfig.Workspace}
 
 	// Add config path argument if needed
@@ -43,6 +42,12 @@ func (dc *DevcontainerCommand) Execute() ([]string, error) {
 
 	// Add any additional arguments
 	devConArgs = append(devConArgs, dc.AdditionalArgs...)
+	return devConArgs
+}
+
+// Execute builds and runs the devcontainer command
+func (dc *DevcontainerCommand) Execute() error {
+	devConArgs := buildDevcontainerArgs(dc)
 
 	// Configure container binds for volumes
 	binds := []string{
@@ -57,14 +62,9 @@ func (dc *DevcontainerCommand) Execute() ([]string, error) {
 	}
 
 	// For testing purposes, we can return the args here.
-	// Ideally, this would be handled by a mock or interface.
-	if os.Getenv("TAPE_TEST_MODE_SKIP_EXEC") == "true" {
-		return devConArgs, nil
-	}
-
 	cli, err := container.NewClient()
 	if err != nil {
-		return devConArgs, fmt.Errorf("error creating container client: %v", err)
+		return fmt.Errorf("error creating container client: %v", err)
 	}
 	defer cli.Close()
 
@@ -77,21 +77,21 @@ func (dc *DevcontainerCommand) Execute() ([]string, error) {
 	ctx := context.Background()
 	devContainer, err := cli.CreateContainer(ctx, config)
 	if err != nil {
-		return devConArgs, fmt.Errorf("error creating container: %v", err)
+		return fmt.Errorf("error creating container: %v", err)
 	}
 
 	if dc.BoxConfig.Config != "" {
 		// Load the config file, modify it, and serialize it to JSON
 		loadedConfig, err := LoadConfig(dc.BoxConfig.Config)
 		if err != nil {
-			return devConArgs, fmt.Errorf("error loading config: %v", err)
+			return fmt.Errorf("error loading config: %v", err)
 		}
 		overrideConfigValues(dc.BoxConfig, loadedConfig)
 
 		// Serialize the config to JSON
 		configJSON, err := json.MarshalIndent(loadedConfig, "", "  ")
 		if err != nil {
-			return devConArgs, fmt.Errorf("error serializing config to JSON: %v", err)
+			return fmt.Errorf("error serializing config to JSON: %v", err)
 		}
 
 		// TOOD only show this when debugging
@@ -99,16 +99,16 @@ func (dc *DevcontainerCommand) Execute() ([]string, error) {
 
 		err = devContainer.CreateFile(ctx, "/tmp/devcontainer.json", configJSON)
 		if err != nil {
-			return devConArgs, fmt.Errorf("error creating config file: %v", err)
+			return fmt.Errorf("error creating config file: %v", err)
 		}
 	}
 
 	err = devContainer.AttachAndRun(ctx, devConArgs)
 	if err != nil {
-		return devConArgs, fmt.Errorf("error attaching and running container: %v", err)
+		return fmt.Errorf("error attaching and running container: %v", err)
 	}
 
-	return devConArgs, nil
+	return nil
 }
 
 func LoadConfig(path string) (*devcontinaer.DevContainerConfig, error) {

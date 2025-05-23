@@ -7,9 +7,6 @@ import (
 )
 
 func TestDevcontainerCommandExecuteWithMounts(t *testing.T) {
-	os.Setenv("TAPE_TEST_MODE_SKIP_EXEC", "true")
-	defer os.Unsetenv("TAPE_TEST_MODE_SKIP_EXEC")
-
 	boxCfg := BoxConfig{
 		Name:      "testbox",
 		Workspace: "/test/workspace",
@@ -25,10 +22,7 @@ func TestDevcontainerCommandExecuteWithMounts(t *testing.T) {
 		AdditionalArgs: []string{"--some-extra-arg"},
 	}
 
-	actualDevConArgs, err := cmd.Execute()
-	if err != nil {
-		t.Fatalf("Execute() returned an unexpected error: %v", err)
-	}
+	actualDevConArgs := buildDevcontainerArgs(&cmd)
 
 	expectedDevConArgs := []string{
 		"devcontainer", "up", // Base command
@@ -48,9 +42,6 @@ func TestDevcontainerCommandExecuteWithMounts(t *testing.T) {
 // Add another test for when BoxConfig.Config is also specified,
 // to ensure mounts are added correctly in that case too.
 func TestDevcontainerCommandExecuteWithMountsAndConfigPath(t *testing.T) {
-	os.Setenv("TAPE_TEST_MODE_SKIP_EXEC", "true")
-	defer os.Unsetenv("TAPE_TEST_MODE_SKIP_EXEC")
-
 	boxCfg := BoxConfig{
 		Name:      "testboxconfig",
 		Workspace: "/test/workspaceconfig",
@@ -65,10 +56,7 @@ func TestDevcontainerCommandExecuteWithMountsAndConfigPath(t *testing.T) {
 		AdditionalArgs: []string{},
 	}
 
-	actualDevConArgs, err := cmd.Execute()
-	if err != nil {
-		t.Fatalf("Execute() returned an unexpected error: %v", err)
-	}
+	actualDevConArgs := buildDevcontainerArgs(&cmd)
 
 	expectedDevConArgs := []string{
 		"devcontainer", "up",
