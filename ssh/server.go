@@ -14,6 +14,12 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+/*
+TODO
+Select container based on user
+Figure out corect user to use for exec (any any other necessary exec config)
+*/
+
 const (
 	hostKeyPath = "hostkey"
 	sshUser     = "dev"
