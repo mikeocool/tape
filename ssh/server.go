@@ -18,6 +18,7 @@ import (
 TODO
 Select container based on user
 Figure out corect user to use for exec (any any other necessary exec config)
+Auth via SSH keys
 */
 
 const (
@@ -25,7 +26,7 @@ const (
 	sshUser     = "dev"
 	sshPassword = "dev"
 	sshPort     = "2222"
-	containerID = "602fab1d59b5"
+	containerID = "f0564f0c904f"
 )
 
 func Start() {
@@ -128,11 +129,12 @@ func handleChannel(channel ssh.Channel, requests <-chan *ssh.Request) {
 
 			// Create exec instance with PTY
 			execConfig := container.ExecOptions{
+				User:         "vscode", // TODO
 				AttachStdin:  true,
 				AttachStdout: true,
 				AttachStderr: true,
 				Tty:          true,
-				Cmd:          []string{"/bin/sh"},
+				Cmd:          []string{"/bin/bash"}, // TODO
 			}
 
 			execResp, err := dockerClient.ContainerExecCreate(ctx, containerID, execConfig)
@@ -149,11 +151,12 @@ func handleChannel(channel ssh.Channel, requests <-chan *ssh.Request) {
 			if execID == "" {
 				// Create exec without PTY if PTY wasn't requested
 				execConfig := container.ExecOptions{
+					User:         "vscode", // TODO
 					AttachStdin:  true,
 					AttachStdout: true,
 					AttachStderr: true,
 					Tty:          false,
-					Cmd:          []string{"/bin/sh"},
+					Cmd:          []string{"/bin/bash"}, // TODO
 				}
 
 				execResp, err := dockerClient.ContainerExecCreate(ctx, containerID, execConfig)
