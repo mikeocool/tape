@@ -47,6 +47,10 @@ func (dc *DevcontainerCommand) Execute() error {
 	if dc.BoxConfig.Config != "" {
 		configDir := filepath.Dir(dc.BoxConfig.Config)
 		binds = append(binds, fmt.Sprintf("%s:%s", configDir, configDir))
+		// TODO manage binding the Dockerfile
+		// the build path is relative to the config file
+		// if Dockerfile is in workspace -- maybe just mount the workspace?
+		// though need to handle cases where we need to modify the devcontainer config?
 	}
 
 	cli, err := container.NewClient()
