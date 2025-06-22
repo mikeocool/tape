@@ -18,6 +18,13 @@ var upCmd = &cobra.Command{
 	Short: "Starts a dev environment",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+
+		globalConfig, err := core.LoadGlobalConfig()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
 		envName := args[0]
 		fmt.Println("Starting box", envName)
 
@@ -34,6 +41,12 @@ var upCmd = &cobra.Command{
 			additionalArgs = append(additionalArgs,
 				"--build-no-cache",
 				"--remove-existing-container")
+		}
+
+		if globalConfig.DotfilesRepository != "" {
+			additionalArgs = append(additionalArgs,
+				"--dotfiles-repository", globalConfig.DotfilesRepository,
+			)
 		}
 
 		// Create and execute the devcontainer command
